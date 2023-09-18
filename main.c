@@ -32,11 +32,10 @@ void sequentialShell(){
 
   while(1){
     printf("phab seq>");
-    fflush(stdout);
 
     char *input;
     char *command;
-    input = getline();
+    input = readline();
     input = trim(input);
 
     int i = 0;
@@ -65,7 +64,7 @@ void sequentialShell(){
 
     else if(pid == 0){
       if(i>0 && strcmp(args[0], "!!") == 0){
-      repeat(*tail);
+        repeat(tail);
     }
       execvp(args[0], args);
     }
