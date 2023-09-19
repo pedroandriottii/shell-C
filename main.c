@@ -5,143 +5,108 @@
 #include <string.h>
 
 struct Node {
-  char *command;
-  struct Node *next;
-} Node;
-
-void sequentialShell();
-void parallelShell();
-void repeat(struct Node *tail);
-void enqueue(struct Node **tail, char *command);
-void clean(struct Node *head);
-
-
-int main(int argc, char *argv[]){
-  struct Node *head = NULL;
-  struct Node *tail = NULL;
-  if(argc == 1){
-    sequentialShell();
-  }
-
-  clean(head);
-  return 0;
-}
-
-void sequentialShell(){
-  char *args[40];
-
-  while(1){
-    printf("phab seq>");
-
-    char *input;
     char *command;
-    input = readline();
-    input = trim(input);
+    struct Node *next;
+};
 
-    int i = 0;
-    command = strtok(input, " \n");
+void enqueue(struct Node **head, struct Node **tail, char *command);
+void printList(struct Node *head);
+void freeList(struct Node *head);
+void execute(char *command);
 
-    while(command!= NULL){
-      args[i] = command;
-      command = strtok(NULL, " \n");
-      i++;
-    }
-    args[i] = NULL;
+int main(void) {
+    struct Node *head = NULL;
+    struct Node *tail = NULL;
 
-    if(i>0 && strcmp(args[0], "exit") == 0){
-      break;
-    }
+    while (1) {
+        char *line = NULL;
+        size_t len = 0;
+        ssize_t read;
 
-    if(i>0 && strcmp(args[0], "style") == 0 && strcmp(args[1], "parallel") == 0){
-      parallelShell();
-    }
+        printf("phab seq>");
+        read = getline(&line, &len, stdin);
 
-    pid_t pid = fork();
+        line[strcspn(line, "\n")] = '\0';
 
-    if(pid < 0){
-      fprintf(stderr, "Fork Failed");
-    }
+        if (strcmp(line, "exit") == 0) {
+            break;
+        }
 
-    else if(pid == 0){
-      if(i>0 && strcmp(args[0], "!!") == 0){
-        repeat(tail);
-    }
-      execvp(args[0], args);
+        enqueue(&head, &tail, line);
+        printList(head);
+
+        execute(line);
     }
 
-    else{
-      wait(NULL);
-    }
-  }
+    freeList(head);
+    return 0;
 }
 
-void parallelShell(){
-  char *args[40];
+void enqueue(struct Node **head, struct Node **tail, char *command) {
+    struct Node *newNode = malloc(sizeof(struct Node));
 
-  while(1){
-    printf("phab par>");
-    fflush(stdout);
+    newNode->command = strdup(command);
+    newNode->next = NULL;
 
-    char input[80];
-    fgets(input, 80, stdin);
-
-    int i = 0;
-    char *token = strtok(input, " \n");
-
-    while(token != NULL){
-      args[i] = token;
-      token = strtok(NULL, " \n");
-      i++;
-    }
-    args[i] = NULL;
-
-    if(i>0 && strcmp(args[0], "exit") == 0){
-      break;
-    }
-    
-    if(i>0 && strcmp(args[0], "style") == 0 && strcmp(args[1], "sequential") == 0){
-      sequentialShell();
-    }
-
-    pid_t pid = fork();
-
-    if(pid < 0){
-      fprintf(stderr, "Fork Failed");
-    }
-
-    else if(pid == 0){
-      execvp(args[0], args);
-    }
-
-    else{
-      wait(NULL);
-    }
-  }
-}
-
-void repeat(struct Node *tail){
-
-}
-
-void clean(struct Node *head){
-  struct Node *current = head;
-  while(current != NULL){
-    struct Node *temp = current;
-    current = current->next;
-    free(temp->command);
-    free(temp);
-  }
-}
-
-void enqueue(struct Node **tail, char *command) {
-    struct Node *newCommand = (struct Node *)malloc(sizeof(struct Node));
-    newCommand->command = strdup(command);
-    newCommand->next = NULL;
-
-    if (*tail == NULL) {
-        *tail = newCommand;
+    if (*head == NULL) {
+        *head = newNode;
+        *tail = newNode;
     } else {
-        (*tail)->next = newCommand;
-        *tail = newCommand;
+        (*tail)->next = newNode;
+        *tail = newNode;
+    }
+}
+
+void printList(struct Node *head) {
+    struct Node *current = head;
+
+    printf("Lista de Comandos:\n");
+
+    while (current != NULL) {
+        printf("%s\n", current->command);
+        current = current->next;
+    }
+}
+
+void freeList(struct Node *head) {
+    struct Node *current = head;
+
+    while (current != NULL) {
+        struct Node *temp = current;
+        current = current->next;
+        free(temp->command);
+        free(temp);
+    }
+}
+
+void execute(char *command) {
+    char *args[40];
+    int i = 0;
+
+    char *token = strtok(command, " \n");
+
+    while (token != NULL) {
+        args[i] = token;
+        token = strtok(NULL, " \n");
+        i++;
+    }
+
+    args[i] = NULL;
+
+    if (strcmp(args[0], "style") == 0 && strcmp(args[1], "parallel") == 0) {
+    }
+    if (strcmp(args[0], "exit") == 0){
+        exit(0);
+    } else {
+        pid_t pid = fork();
+
+        if (pid < 0) {
+            fprintf(stderr, "Fork Failed\n");
+        } else if (pid == 0) {
+            execvp(args[0], args);
+            exit(1);
+        } else {
+            wait(NULL);
+        }
     }
 }
