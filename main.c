@@ -13,8 +13,8 @@ struct Node {
 void enqueue(struct Node **head, struct Node **tail, char *command);
 void printList(struct Node *head);
 void freeList(struct Node *head);
-void sequencialShell(char *command);
-void parallelShell(char *command);
+void sequencialShell(char *line);
+// void parallelShell(char *command);
 
 int main(void) {
     struct Node *head = NULL;
@@ -123,26 +123,13 @@ void sequencialShell(char *line) {
     }
 
     for (int j = 0; j < i; j++) {
-        char *args[40];
-        int k = 0;
-
-        char *command = strtok(commands[j], " \n");
-
-        while (command != NULL) {
-            args[k] = command;
-            command = strtok(NULL, " \n");
-            k++;
-        }
-
-        args[k] = NULL;
-
-        if (k > 0) {
+        if (strlen(commands[j]) > 0) {
             pid_t pid = fork();
 
             if (pid < 0) {
                 printf("Fork Failed\n");
             } else if (pid == 0) {
-                execvp(args[0], args);
+                execlp("sh", "sh", "-c", commands[j], NULL);
                 exit(1);
             } else {
                 wait(NULL);
@@ -150,7 +137,6 @@ void sequencialShell(char *line) {
         }
         free(commands[j]);
     }
-
 }
 
 // void parallelShell(char *line){
