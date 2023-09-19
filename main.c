@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <pthread.h>
 
 struct Node {
     char *command;
@@ -12,27 +13,59 @@ struct Node {
 void enqueue(struct Node **head, struct Node **tail, char *command);
 void printList(struct Node *head);
 void freeList(struct Node *head);
-void execute(char *command);
+void sequencialShell(char *command);
+void parallelShell(char *command);
 
 int main(void) {
     struct Node *head = NULL;
     struct Node *tail = NULL;
 
+    int isParallel = 0;
+
     while (1) {
         char *line = NULL;
         size_t len = 0;
         ssize_t read;
-
-        printf("phab seq>");
+        
+        if(isParallel == 0){
+            printf("phab seq>");
+        }
+        if(isParallel == 1){
+            printf("phab par>");
+        }
         read = getline(&line, &len, stdin);
 
         line[strcspn(line, "\n")] = '\0';
 
+        if (strcmp(line, "exit") == 0) {
+            free(line);
+            break;
+        }
 
-        enqueue(&head, &tail, line);
-        printList(head);
+        if(strcmp(line, "style parallel") == 0){
+            free(line);
+            isParallel = 1;
+            continue;        
+        }
+        if(strcmp(line, "style sequencial") == 0){
+            free(line);
+            isParallel = 0;
+            continue;        
+        }
+        if(isParallel){
+            enqueue(&head, &tail, line);
+            printList(head);
 
-        execute(line);
+            // parallelShell(line);
+        }else{
+            enqueue(&head, &tail, line);
+            printList(head);
+
+            sequencialShell(line);
+
+        }
+
+
     }
 
     freeList(head);
@@ -57,12 +90,13 @@ void enqueue(struct Node **head, struct Node **tail, char *command) {
 void printList(struct Node *head) {
     struct Node *current = head;
 
-    printf("Lista de Comandos:\n");
+    printf("Comandos -> ");
 
     while (current != NULL) {
-        printf("%s\n", current->command);
+        printf("%s -> ", current->command);
         current = current->next;
     }
+    printf("\n");
 }
 
 void freeList(struct Node *head) {
@@ -76,7 +110,7 @@ void freeList(struct Node *head) {
     }
 }
 
-void execute(char *line) {
+void sequencialShell(char *line) {
     char *commands[40];
     int i = 0;
 
@@ -114,7 +148,33 @@ void execute(char *line) {
                 wait(NULL);
             }
         }
-
         free(commands[j]);
     }
+
 }
+
+// void parallelShell(char *line){
+//     char *args[40];
+//     int i = 0;
+
+//     char *token = strtok(line, " \n");
+
+//     while (token != NULL) {
+//         args[i] = token;
+//         token = strtok(NULL, " \n");
+//         i++;
+//     }
+
+//     args[i] = NULL;
+
+//     if (i > 0) {
+//         pid_t pid = fork();
+
+//         if (pid < 0) {
+//             fprintf(stderr, "Fork Failed\n");
+//         } else if (pid == 0) {
+//             execvp(args[0], args);
+//             exit(1);
+//         }
+//     }
+// }
