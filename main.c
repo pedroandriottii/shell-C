@@ -28,9 +28,6 @@ int main(void) {
 
         line[strcspn(line, "\n")] = '\0';
 
-        if (strcmp(line, "exit") == 0) {
-            break;
-        }
 
         enqueue(&head, &tail, line);
         printList(head);
@@ -79,34 +76,45 @@ void freeList(struct Node *head) {
     }
 }
 
-void execute(char *command) {
-    char *args[40];
+void execute(char *line) {
+    char *commands[40];
     int i = 0;
 
-    char *token = strtok(command, " \n");
+    char *token = strtok(line, ";");
 
     while (token != NULL) {
-        args[i] = token;
-        token = strtok(NULL, " \n");
+        commands[i] = strdup(token);
+        token = strtok(NULL, ";");
         i++;
     }
 
-    args[i] = NULL;
+    for (int j = 0; j < i; j++) {
+        char *args[40];
+        int k = 0;
 
-    if (strcmp(args[0], "style") == 0 && strcmp(args[1], "parallel") == 0) {
-    }
-    if (strcmp(args[0], "exit") == 0){
-        exit(0);
-    } else {
-        pid_t pid = fork();
+        char *command = strtok(commands[j], " \n");
 
-        if (pid < 0) {
-            fprintf(stderr, "Fork Failed\n");
-        } else if (pid == 0) {
-            execvp(args[0], args);
-            exit(1);
-        } else {
-            wait(NULL);
+        while (command != NULL) {
+            args[k] = command;
+            command = strtok(NULL, " \n");
+            k++;
         }
+
+        args[k] = NULL;
+
+        if (k > 0) {
+            pid_t pid = fork();
+
+            if (pid < 0) {
+                printf("Fork Failed\n");
+            } else if (pid == 0) {
+                execvp(args[0], args);
+                exit(1);
+            } else {
+                wait(NULL);
+            }
+        }
+
+        free(commands[j]);
     }
 }
