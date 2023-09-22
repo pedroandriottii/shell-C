@@ -15,27 +15,40 @@ void printList(struct Node *head);
 void freeList(struct Node *head);
 void sequencialShell(char *line);
 void parallelShell(char *line);
+void *executeParallel(void *arg);
 
-int main(void) {
+int main(int argc, char *argv[]) {
     struct Node *head = NULL;
     struct Node *tail = NULL;
 
+    FILE *file = NULL;
     int isParallel = 0;
+    int fileMode = 0;
+
+    if (argc > 1) {
+        file = fopen(argv[1], "r");
+        fileMode = 1;
+    }
 
     while (1) {
         char *line = NULL;
         size_t len = 0;
         ssize_t read;
         
-        if(isParallel == 0){
+        if(isParallel == 0 && fileMode == 0){
             printf("phab seq>");
         }
 
-        if(isParallel == 1){
+        if(isParallel == 1 && fileMode == 0){
             printf("phab par>");
         }
 
-        read = getline(&line, &len, stdin);
+        if(fileMode == 0){
+            read = getline(&line, &len, stdin);
+        }
+        if(fileMode == 1){
+            read = getline(&line, &len, file);
+        }
 
         line[strcspn(line, "\n")] = '\0';
 
@@ -150,31 +163,39 @@ void sequencialShell(char *line) {
     }
 }
 
-void parallelShell(char *line)  {
+void parallelShell(char *line) {
     char *commands[40];
-    int commandsqty = 1;
+    int commandsqty = 0;
     int i = 0;
 
     char *token = strtok(line, ";");
 
-    while(token != NULL){
+    while (token != NULL && commandsqty < 40) {
         commands[commandsqty] = strdup(token);
         token = strtok(NULL, ";");
         commandsqty++;
     }
 
+    pthread_t threads[40];
+
     for (int i = 0; i < commandsqty; i++) {
-        pid_t pid = fork();
-        if (pid == 0) { 
-        char *cmd = commands[i];
-        system(cmd);
-        exit(EXIT_SUCCESS);
-        }
-    }
-    
-    for (int i = 0; i < commandsqty; i++) {
-    int status;
-    wait(&status);
+        pthread_create(&threads[i], NULL, executeParallel, (void *)commands[i]);
     }
 
+    for (int i = 0; i < commandsqty; i++) {
+        pthread_join(threads[i], NULL);
+    }
+}
+
+void *executeParallel(void *arg) {
+    char *cmd = (char *)arg;
+    char buffer[128];
+    FILE *fp = popen(cmd, "r");
+
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        printf("%s", buffer);
+    }
+
+    pclose(fp);
+    pthread_exit(NULL);
 }
