@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <pthread.h>
+#include <fcntl.h>
 
 // Estrutura para fazer uma fila de comandos.
 struct Node {
@@ -175,10 +176,6 @@ void freeList(struct Node *head) {
 }
 
 // Funcao para executar os comandos em sequencial
-#include <fcntl.h> // Inclua a biblioteca para abrir arquivos
-
-// ...
-
 void sequencialShell(char *line) {
     char *commands[40];
     int i = 0;
@@ -237,8 +234,6 @@ void sequencialShell(char *line) {
         free(commands[j]);
     }
 }
-
-
 
 // Funcao para criar threads e mandar para uma funcao que executa os comandos em paralelo
 void parallelShell(char *line) {
