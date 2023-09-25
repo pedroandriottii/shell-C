@@ -175,9 +175,14 @@ void freeList(struct Node *head) {
 }
 
 // Funcao para executar os comandos em sequencial
+#include <fcntl.h> // Inclua a biblioteca para abrir arquivos
+
+// ...
+
 void sequencialShell(char *line) {
     char *commands[40];
     int i = 0;
+    int fromFile = 0; // Variável para indicar se estamos lendo comandos de um arquivo
 
     char *token = strtok(line, ";");
 
@@ -189,21 +194,51 @@ void sequencialShell(char *line) {
 
     for (int j = 0; j < i; j++) {
         if (strlen(commands[j]) > 0) {
-            pid_t pid = fork();
+            char *redirect_output = strchr(commands[j], '>');
 
-            if (pid < 0) {
-                printf("Fork Failed\n");
-            } else if (pid == 0) {
+            // Verifica se o operador '<' está presente no comando
+            char *redirect_input = strchr(commands[j], '<');
+
+            if (redirect_output != NULL) {
+                *redirect_output = '\0';
+                char *output_file = redirect_output + 1; 
                 
+                int output_fd = open(output_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+                dup2(output_fd, STDOUT_FILENO);
+                close(output_fd); 
+
                 execlp("sh", "sh", "-c", commands[j], NULL);
-                exit(1);
+            } else if (redirect_input != NULL) {
+                *redirect_input = '\0';
+                char *input_file = redirect_input + 1;
+                
+                // Abra o arquivo de entrada em modo de leitura
+                int input_fd = open(input_file, O_RDONLY);
+
+                dup2(input_fd, STDIN_FILENO);
+                close(input_fd);
+
+                // Execute o comando com entrada redirecionada do arquivo
+                execlp("sh", "sh", "-c", commands[j], NULL);
             } else {
-                wait(NULL);
+                pid_t pid = fork();
+
+                if (pid < 0) {
+                    printf("Fork Failed\n");
+                } else if (pid == 0) {
+                    execlp("sh", "sh", "-c", commands[j], NULL);
+                    exit(1);
+                } else {
+                    wait(NULL);
+                }
             }
         }
         free(commands[j]);
     }
 }
+
+
 
 // Funcao para criar threads e mandar para uma funcao que executa os comandos em paralelo
 void parallelShell(char *line) {
