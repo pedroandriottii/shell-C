@@ -1,3 +1,5 @@
 ls
 echo ëstou rodando arquivo
+ls | sort
+!!
 exit
